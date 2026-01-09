@@ -10,7 +10,8 @@ export enum AuthState {
 export interface UserProfile {
   id: string;
   email: string;
-  enrolledFaceData?: string; // Base64 string of the face snapshot
+  enrolledFaceData?: string;
+  enrolledAt: number;
 }
 
 export interface RecognitionResult {
@@ -21,5 +22,15 @@ export interface RecognitionResult {
     liveness: boolean;
     lighting: string;
     focus: string;
+    landmarks_detected?: boolean;
+    risk_score?: number; // 0-100
   };
+}
+
+export interface AuthLog {
+  id: string;
+  timestamp: number;
+  type: 'enrollment' | 'verification';
+  success: boolean;
+  confidence: number;
 }

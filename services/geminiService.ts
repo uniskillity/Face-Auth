@@ -4,6 +4,9 @@ import { RecognitionResult } from "../types";
 
 const ai = new GoogleGenAI({ apiKey: process.env.API_KEY || '' });
 
+/**
+ * Perform deep biometric analysis for enrollment.
+ */
 export const analyzeFace = async (imageBase64: string): Promise<RecognitionResult> => {
   try {
     const response = await ai.models.generateContent({
@@ -17,7 +20,13 @@ export const analyzeFace = async (imageBase64: string): Promise<RecognitionResul
             },
           },
           {
-            text: "Analyze this face for a biometric authentication system. Check if a human face is clearly visible, evaluate lighting, and determine if it looks like a real person (liveness detection). Return JSON format.",
+            text: `Act as a high-security biometric validator. 
+            Perform 'Liveness Detection' and 'Landmark Consistency' check.
+            1. Is this a live human being (not a picture of a picture, or a video playing on a screen)?
+            2. Are eyes, nose, and mouth clearly visible for hashing?
+            3. Is the lighting adequate for biometric extraction?
+            4. Assign a risk score (0-100) where 0 is perfect and 100 is likely spoof.
+            Return a JSON object with 'match', 'confidence', 'message', and 'analysis'.`,
           },
         ],
       },
@@ -26,8 +35,8 @@ export const analyzeFace = async (imageBase64: string): Promise<RecognitionResul
         responseSchema: {
           type: Type.OBJECT,
           properties: {
-            match: { type: Type.BOOLEAN },
-            confidence: { type: Type.NUMBER },
+            match: { type: Type.BOOLEAN, description: "True if face is valid for enrollment" },
+            confidence: { type: Type.NUMBER, description: "Quality confidence 0 to 1" },
             message: { type: Type.STRING },
             analysis: {
               type: Type.OBJECT,
@@ -35,8 +44,10 @@ export const analyzeFace = async (imageBase64: string): Promise<RecognitionResul
                 liveness: { type: Type.BOOLEAN },
                 lighting: { type: Type.STRING },
                 focus: { type: Type.STRING },
+                landmarks_detected: { type: Type.BOOLEAN },
+                risk_score: { type: Type.NUMBER },
               },
-              required: ["liveness", "lighting", "focus"],
+              required: ["liveness", "lighting", "focus", "landmarks_detected", "risk_score"],
             },
           },
           required: ["match", "confidence", "message", "analysis"],
@@ -50,11 +61,14 @@ export const analyzeFace = async (imageBase64: string): Promise<RecognitionResul
     return {
       match: false,
       confidence: 0,
-      message: "Security analysis failed. Please try again.",
+      message: "SYSTEM_ERROR: BIOMETRIC_EXTRACTION_FAILED",
     };
   }
 };
 
+/**
+ * Compare two faces with strict identity verification.
+ */
 export const verifyIdentity = async (enrolledBase64: string, currentBase64: string): Promise<RecognitionResult> => {
   try {
     const response = await ai.models.generateContent({
@@ -74,7 +88,14 @@ export const verifyIdentity = async (enrolledBase64: string, currentBase64: stri
             },
           },
           {
-            text: "Compare these two images. Are they the same person? The first image is the enrolled biometric record, and the second is the current verification attempt. Be strict. Return JSON with 'match' (boolean), 'confidence' (0-1), and 'message'.",
+            text: `Task: Biometric Identity Matching.
+            Image 1: SECURE_VAULT_RECORD (Enrollment).
+            Image 2: LIVE_VERIFICATION_ATTEMPT.
+            Are these the SAME human being? 
+            Strictly analyze: Inter-pupillary distance, facial geometry, nose-to-lip ratio, and specific unique feature identifiers.
+            Ignore lighting or background differences. 
+            If similarity is > 90%, mark as match.
+            Return JSON with 'match', 'confidence' (0-1), and 'message'.`,
           },
         ],
       },
@@ -98,7 +119,7 @@ export const verifyIdentity = async (enrolledBase64: string, currentBase64: stri
     return {
       match: false,
       confidence: 0,
-      message: "Identity verification error.",
+      message: "PROTOCOL_ERROR: IDENTITY_LINK_FAILURE",
     };
   }
 };
