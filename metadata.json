@@ -1,0 +1,7 @@
+{
+  "name": "VisionAuth MVP",
+  "description": "A high-fidelity facial recognition authentication MVP demonstrating biometric security using AI-powered face analysis and verification.",
+  "requestFramePermissions": [
+    "camera"
+  ]
+}
